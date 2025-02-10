@@ -3,7 +3,13 @@ import pool from "./db/postgres";
 import authRoutes from "./routes/authRoutes";
 import stockRoutes from "./routes/StockRoutes";
 import compression from "compression"; // Import the compression middleware
-import { authenticateJWT, apiLimiter } from "./middleware";
+import {
+  authenticateJWT,
+  apiLimiter,
+  authenticateRefreshJWT,
+} from "./middleware";
+import { login, register, refreshToken } from "./controllers/authController";
+
 import logger from "./logger";
 
 const app = express();
@@ -14,7 +20,7 @@ app.use(express.json());
 
 app.use("/api", apiLimiter); // Apply rate limiter to all /api routes
 
-app.get("/ping", (req, res) => {
+app.get("/api/ping", (req, res) => {
   res.send("pong");
 });
 
@@ -23,7 +29,13 @@ const startServer = async () => {
     await pool.connect();
     logger.info("Connected to the database");
 
-    app.post("/api/public", authRoutes);
+    authRoutes.post("/api/public/login", login);
+    authRoutes.post("/api/public/register", register);
+    authRoutes.post(
+      "/api/public/refresh-token",
+      authenticateRefreshJWT,
+      refreshToken
+    );
 
     // Apply JWT middleware and prefix /private to stockRoutes
     app.use("/api/private", authenticateJWT, stockRoutes);
