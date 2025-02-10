@@ -33,7 +33,7 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         logger_1.default.info("Connected to the database");
         app.listen(port, hostName, () => {
             logger_1.default.info(`Server is running on port ${port}`);
-            app.use("/api/public", middleware_1.authenticateJWT, authRoutes_1.default);
+            app.use("/api/public", authRoutes_1.default);
             // Apply JWT middleware and prefix /private to stockRoutes
             app.use("/api/private", middleware_1.authenticateJWT, StockRoutes_1.default);
             app.use((0, compression_1.default)({
