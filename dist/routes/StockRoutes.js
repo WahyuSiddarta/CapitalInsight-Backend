@@ -37,7 +37,7 @@ const express_1 = require("express");
 const controller = __importStar(require("../controllers"));
 const middleware_1 = require("../middleware");
 const router = (0, express_1.Router)();
-router.get("/tickers", 
+router.get("/api/tickers", 
 // authenticateJWT,
 (0, middleware_1.customApiLimiter)({ windowMs: 10 * 60 * 1000, max: 50 }), controller.GetAllStockTicker);
 router.get("/api/fundamental/erm", 

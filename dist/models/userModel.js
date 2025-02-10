@@ -31,7 +31,7 @@ class UserModel {
         return __awaiter(this, void 0, void 0, function* () {
             const client = yield postgres_1.default.connect();
             try {
-                yield client.query("INSERT INTO users (name, email, password, salt) VALUES ($1, $2, $3, $4)", [user.name, user.email, user.password, user.salt]);
+                yield client.query("INSERT INTO users (email, password, salt) VALUES ($1, $2, $3)", [user.email, user.password, user.salt]);
             }
             finally {
                 client.release();

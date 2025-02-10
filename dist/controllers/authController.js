@@ -15,14 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.refreshToken = exports.register = exports.login = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
-const index_1 = require("../db/index");
 const userModel_1 = require("../models/userModel");
 const secretKey = process.env.JWT_SECRET || "your_secret_key";
 const refreshSecretKey = process.env.JWT_REFRESH_SECRET || "your_refresh_secret_key";
 const pepper = process.env.PEPPER || "your_pepper";
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
-    const client = yield index_1.postgresPool.connect();
     try {
         const user = yield userModel_1.UserModel.findByEmail(email);
         if (user &&
@@ -40,30 +38,33 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     catch (err) {
         res.status(500).json({ error: err.message });
     }
-    finally {
-        client.release();
-    }
 });
 exports.login = login;
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, email, password } = req.body;
+    const { email, password } = req.body;
     const salt = bcrypt_1.default.genSaltSync(10);
     const hashedPassword = bcrypt_1.default.hashSync(password + salt + pepper, 10);
-    const client = yield index_1.postgresPool.connect();
     try {
         yield userModel_1.UserModel.create({
-            name,
             email,
             password: hashedPassword,
             salt,
         });
-        res.status(201).json({ message: "User registered successfully" });
+        const user = yield userModel_1.UserModel.findByEmail(email);
+        if (!user) {
+            res.status(201).json({ message: "User registered successfully" });
+            return;
+        }
+        const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email }, secretKey, {
+            expiresIn: "1h",
+        });
+        const refreshToken = jsonwebtoken_1.default.sign({ id: user.id, email: user.email }, refreshSecretKey, { expiresIn: "7d" });
+        res
+            .status(201)
+            .json({ message: "User registered successfully", token, refreshToken });
     }
     catch (err) {
         res.status(500).json({ error: err.message });
-    }
-    finally {
-        client.release();
     }
 });
 exports.register = register;
