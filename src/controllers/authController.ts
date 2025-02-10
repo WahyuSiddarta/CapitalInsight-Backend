@@ -16,7 +16,6 @@ interface CustomJwtPayload extends JwtPayload {
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
-  const client = await pool.connect();
   try {
     const user = await UserModel.findByEmail(email);
     if (
@@ -37,28 +36,40 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
-  } finally {
-    client.release();
   }
 };
 
 export const register = async (req: Request, res: Response): Promise<void> => {
-  const { name, email, password } = req.body;
+  const { email, password } = req.body;
   const salt = bcrypt.genSaltSync(10);
   const hashedPassword = bcrypt.hashSync(password + salt + pepper, 10);
-  const client = await pool.connect();
   try {
     await UserModel.create({
-      name,
       email,
       password: hashedPassword,
       salt,
     });
-    res.status(201).json({ message: "User registered successfully" });
+
+    const user = await UserModel.findByEmail(email);
+    if (!user) {
+      res.status(201).json({ message: "User registered successfully" });
+      return;
+    }
+
+    const token = jwt.sign({ id: user.id, email: user.email }, secretKey, {
+      expiresIn: "1h",
+    });
+    const refreshToken = jwt.sign(
+      { id: user.id, email: user.email },
+      refreshSecretKey,
+      { expiresIn: "7d" }
+    );
+
+    res
+      .status(201)
+      .json({ message: "User registered successfully", token, refreshToken });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
-  } finally {
-    client.release();
   }
 };
 

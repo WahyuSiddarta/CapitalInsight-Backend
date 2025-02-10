@@ -4,7 +4,7 @@ import { authenticateJWT, customApiLimiter } from "../middleware";
 
 const router = Router();
 router.get(
-  "/tickers",
+  "/api/tickers",
   // authenticateJWT,
   customApiLimiter({ windowMs: 10 * 60 * 1000, max: 50 }),
   controller.GetAllStockTicker

@@ -1,7 +1,7 @@
 import express from "express";
 import pool from "./db/postgres";
 import { login, register, refreshToken } from "./controllers/authController";
-import * as controller from "./controllers";
+import stockRoutes from "./routes/StockRoutes";
 
 const app = express();
 const port = 3000;
@@ -18,14 +18,10 @@ const startServer = async () => {
     await pool.connect();
     console.log("Connected to the database");
 
-    app.post("/login", login);
-    app.post("/register", register);
-    app.post("/refresh-token", refreshToken);
-    app.get(
-      "/api/fundamental/erm",
-      // authenticateJWT,
-      controller.GetERMValuation
-    );
+    app.post("/api/login", login);
+    app.post("/api/register", register);
+    app.post("/api/refresh-token", refreshToken);
+    app.use(stockRoutes);
 
     app.listen(port, hostName as string, () => {
       console.log(`Server is running on port ${port}`);

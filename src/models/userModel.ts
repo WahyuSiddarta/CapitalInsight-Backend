@@ -2,7 +2,6 @@ import pool from "../db/postgres";
 
 interface User {
   id?: number;
-  name?: string;
   email: string;
   password: string;
   salt?: string;
@@ -26,8 +25,8 @@ export class UserModel {
     const client = await pool.connect();
     try {
       await client.query(
-        "INSERT INTO users (name, email, password, salt) VALUES ($1, $2, $3, $4)",
-        [user.name, user.email, user.password, user.salt]
+        "INSERT INTO users (email, password, salt) VALUES ($1, $2, $3)",
+        [user.email, user.password, user.salt]
       );
     } finally {
       client.release();
