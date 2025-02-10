@@ -4,7 +4,8 @@ import { login, register, refreshToken } from "./controllers/authController";
 import * as controller from "./controllers";
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3000;
+const hostName = "0.0.0.0";
 
 app.use(express.json());
 
@@ -26,7 +27,7 @@ const startServer = async () => {
       controller.GetERMValuation
     );
 
-    app.listen(port, () => {
+    app.listen(port, hostName as string, () => {
       console.log(`Server is running on port ${port}`);
     });
   } catch (err) {

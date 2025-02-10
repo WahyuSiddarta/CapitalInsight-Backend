@@ -50,7 +50,8 @@ const postgres_1 = __importDefault(require("./db/postgres"));
 const authController_1 = require("./controllers/authController");
 const controller = __importStar(require("./controllers"));
 const app = (0, express_1.default)();
-const port = process.env.PORT || 3000;
+const port = 3000;
+const hostName = "0.0.0.0";
 app.use(express_1.default.json());
 app.get("/ping", (req, res) => {
     res.send("pong");
@@ -65,7 +66,7 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         app.get("/api/fundamental/erm", 
         // authenticateJWT,
         controller.GetERMValuation);
-        app.listen(port, () => {
+        app.listen(port, hostName, () => {
             console.log(`Server is running on port ${port}`);
         });
     }
