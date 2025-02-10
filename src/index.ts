@@ -32,14 +32,7 @@ const startServer = async () => {
     app.listen(port, hostName as string, () => {
       logger.info(`Server is running on port ${port}`);
 
-      authRoutes.post("/api/public/login", login);
-      authRoutes.post("/api/public/register", register);
-      authRoutes.post(
-        "/api/public/refresh-token",
-        authenticateRefreshJWT,
-        refreshToken
-      );
-
+      app.use("/api/public", authenticateJWT, authRoutes);
       // Apply JWT middleware and prefix /private to stockRoutes
       app.use("/api/private", authenticateJWT, stockRoutes);
 

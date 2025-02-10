@@ -18,7 +18,6 @@ const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const StockRoutes_1 = __importDefault(require("./routes/StockRoutes"));
 const compression_1 = __importDefault(require("compression")); // Import the compression middleware
 const middleware_1 = require("./middleware");
-const authController_1 = require("./controllers/authController");
 const logger_1 = __importDefault(require("./logger"));
 const app = (0, express_1.default)();
 const port = 3000;
@@ -34,9 +33,7 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         logger_1.default.info("Connected to the database");
         app.listen(port, hostName, () => {
             logger_1.default.info(`Server is running on port ${port}`);
-            authRoutes_1.default.post("/api/public/login", authController_1.login);
-            authRoutes_1.default.post("/api/public/register", authController_1.register);
-            authRoutes_1.default.post("/api/public/refresh-token", middleware_1.authenticateRefreshJWT, authController_1.refreshToken);
+            app.use("/api/public", middleware_1.authenticateJWT, authRoutes_1.default);
             // Apply JWT middleware and prefix /private to stockRoutes
             app.use("/api/private", middleware_1.authenticateJWT, StockRoutes_1.default);
             app.use((0, compression_1.default)({
