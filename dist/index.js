@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const postgres_1 = __importDefault(require("./db/postgres"));
-const authController_1 = require("./controllers/authController");
+const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const StockRoutes_1 = __importDefault(require("./routes/StockRoutes"));
 const compression_1 = __importDefault(require("compression")); // Import the compression middleware
 const middleware_1 = require("./middleware");
@@ -23,10 +23,6 @@ const app = (0, express_1.default)();
 const port = 3000;
 const hostName = "0.0.0.0";
 app.use(express_1.default.json());
-// Middleware to prefix all routes with /api
-app.use("/api", (req, res, next) => {
-    next();
-});
 app.use("/api", middleware_1.apiLimiter); // Apply rate limiter to all /api routes
 app.get("/ping", (req, res) => {
     res.send("pong");
@@ -35,11 +31,9 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield postgres_1.default.connect();
         logger_1.default.info("Connected to the database");
-        app.post("/public/login", authController_1.login);
-        app.post("/public/register", authController_1.register);
-        app.post("/public/refresh-token", middleware_1.authenticateRefreshJWT, authController_1.refreshToken);
+        app.post("/api/public", authRoutes_1.default);
         // Apply JWT middleware and prefix /private to stockRoutes
-        app.use("/private", middleware_1.authenticateJWT, StockRoutes_1.default);
+        app.use("/api/private", middleware_1.authenticateJWT, StockRoutes_1.default);
         app.use((0, compression_1.default)({
             // Use compression middleware with Brotli options
             brotli: {
