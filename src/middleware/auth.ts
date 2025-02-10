@@ -1,5 +1,9 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
+
+interface CustomRequest extends Request {
+  user?: any;
+}
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -7,7 +11,7 @@ dotenv.config();
 const jwtSecret = process.env.JWT_SECRET as string;
 
 export const authenticateJWT = (
-  req: Request,
+  req: CustomRequest,
   res: Response,
   next: NextFunction
 ) => {
