@@ -1,18 +1,16 @@
 import { Router } from "express";
 import * as controller from "../controllers";
-import { authenticateJWT, customApiLimiter } from "../middleware";
+import { customApiLimiter } from "../middleware";
 
 const router = Router();
 router.get(
-  "/api/tickers",
-  // authenticateJWT,
+  "/tickers",
   customApiLimiter({ windowMs: 10 * 60 * 1000, max: 50 }),
   controller.GetAllStockTicker
 );
 
 router.get(
-  "/api/fundamental/erm",
-  // authenticateJWT,
+  "/fundamental/erm",
   customApiLimiter({ windowMs: 10 * 60 * 1000, max: 50 }),
   controller.GetERMValuation
 );

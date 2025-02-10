@@ -16,27 +16,45 @@ const express_1 = __importDefault(require("express"));
 const postgres_1 = __importDefault(require("./db/postgres"));
 const authController_1 = require("./controllers/authController");
 const StockRoutes_1 = __importDefault(require("./routes/StockRoutes"));
+const compression_1 = __importDefault(require("compression")); // Import the compression middleware
+const middleware_1 = require("./middleware");
+const logger_1 = __importDefault(require("./logger"));
 const app = (0, express_1.default)();
 const port = 3000;
 const hostName = "0.0.0.0";
 app.use(express_1.default.json());
+// Middleware to prefix all routes with /api
+app.use("/api", (req, res, next) => {
+    next();
+});
+app.use("/api", middleware_1.apiLimiter); // Apply rate limiter to all /api routes
 app.get("/ping", (req, res) => {
     res.send("pong");
 });
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield postgres_1.default.connect();
-        console.log("Connected to the database");
-        app.post("/api/login", authController_1.login);
-        app.post("/api/register", authController_1.register);
-        app.post("/api/refresh-token", authController_1.refreshToken);
-        app.use(StockRoutes_1.default);
+        logger_1.default.info("Connected to the database");
+        app.post("/public/login", authController_1.login);
+        app.post("/public/register", authController_1.register);
+        app.post("/public/refresh-token", middleware_1.authenticateRefreshJWT, authController_1.refreshToken);
+        // Apply JWT middleware and prefix /private to stockRoutes
+        app.use("/private", middleware_1.authenticateJWT, StockRoutes_1.default);
+        app.use((0, compression_1.default)({
+            // Use compression middleware with Brotli options
+            brotli: {
+                enabled: true,
+                zlib: {
+                    level: 11,
+                },
+            },
+        }));
         app.listen(port, hostName, () => {
-            console.log(`Server is running on port ${port}`);
+            logger_1.default.info(`Server is running on port ${port}`);
         });
     }
     catch (err) {
-        console.error("Failed to connect to the database", err);
+        logger_1.default.error("Failed to connect to the database", err);
         process.exit(1);
     }
 });
