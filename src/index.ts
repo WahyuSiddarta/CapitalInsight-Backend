@@ -3,13 +3,9 @@ import pool from "./db/postgres";
 import authRoutes from "./routes/authRoutes";
 import stockRoutes from "./routes/StockRoutes";
 import compression from "compression"; // Import the compression middleware
-import {
-  authenticateJWT,
-  apiLimiter,
-  authenticateRefreshJWT,
-} from "./middleware";
-import { login, register, refreshToken } from "./controllers/authController";
+import { authenticateJWT, apiLimiter } from "./middleware";
 
+import zlib from "zlib";
 import logger from "./logger";
 
 const app = express();
@@ -38,13 +34,14 @@ const startServer = async () => {
 
       app.use(
         compression({
-          // Use compression middleware with Brotli options
-          brotli: {
-            enabled: true,
-            zlib: {
-              level: 11,
-            },
+          filter: (req, res) => {
+            if (req.headers["x-no-compression"]) {
+              return false; // Bypass compression if the client requests it
+            }
+            return compression.filter(req, res); // Use default filter
           },
+          brotli: { enabled: true, zlib: zlib.constants.BROTLI_PARAM_MODE },
+          level: zlib.constants.Z_BEST_COMPRESSION,
         })
       );
     });

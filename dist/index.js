@@ -18,6 +18,7 @@ const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const StockRoutes_1 = __importDefault(require("./routes/StockRoutes"));
 const compression_1 = __importDefault(require("compression")); // Import the compression middleware
 const middleware_1 = require("./middleware");
+const zlib_1 = __importDefault(require("zlib"));
 const logger_1 = __importDefault(require("./logger"));
 const app = (0, express_1.default)();
 const port = 3000;
@@ -37,13 +38,14 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
             // Apply JWT middleware and prefix /private to stockRoutes
             app.use("/api/private", middleware_1.authenticateJWT, StockRoutes_1.default);
             app.use((0, compression_1.default)({
-                // Use compression middleware with Brotli options
-                brotli: {
-                    enabled: true,
-                    zlib: {
-                        level: 11,
-                    },
+                filter: (req, res) => {
+                    if (req.headers["x-no-compression"]) {
+                        return false; // Bypass compression if the client requests it
+                    }
+                    return compression_1.default.filter(req, res); // Use default filter
                 },
+                brotli: { enabled: true, zlib: zlib_1.default.constants.BROTLI_PARAM_MODE },
+                level: zlib_1.default.constants.Z_BEST_COMPRESSION,
             }));
         });
     }

@@ -22,7 +22,8 @@
     "pg": "^8.13.1",
     "promise-retry": "^2.0.1",
     "winston": "^3.17.0",
-    "yahoo-finance2": "^2.13.3"
+    "yahoo-finance2": "^2.13.3",
+    "zlib": "^1.0.5"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
