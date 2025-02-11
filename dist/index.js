@@ -24,6 +24,7 @@ const app = (0, express_1.default)();
 const port = 3000;
 const hostName = "0.0.0.0";
 app.use(express_1.default.json()); // Ensure this is applied before routes
+app.use(express_1.default.urlencoded({ extended: true })); // Add this line to handle URL-encoded data
 app.use((0, cors_1.default)({
     origin: "*", // Allow all origins (change this for security)
     methods: "GET,POST,PUT,DELETE",
@@ -32,6 +33,16 @@ app.use((0, cors_1.default)({
 app.use("/api", middleware_1.apiLimiter); // Apply rate limiter to all /api routes
 app.get("/api/ping", (req, res) => {
     res.send("pong");
+});
+// Example GET API to handle query parameters
+app.get("/api/query", (req, res) => {
+    const queryParam = req.query.param;
+    res.json({ message: `Received query param: ${queryParam}` });
+});
+// Example GET API to handle URL parameters
+app.get("/api/item/:id", (req, res) => {
+    const itemId = req.params.id;
+    res.json({ message: `Received URL param: ${itemId}` });
 });
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
