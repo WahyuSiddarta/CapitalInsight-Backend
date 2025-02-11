@@ -23,11 +23,11 @@ const logger_1 = __importDefault(require("./logger"));
 const app = (0, express_1.default)();
 const port = 3000;
 const hostName = "0.0.0.0";
-app.use(express_1.default.json());
+app.use(express_1.default.json()); // Ensure this is applied before routes
 app.use((0, cors_1.default)({
     origin: "*", // Allow all origins (change this for security)
     methods: "GET,POST,PUT,DELETE",
-    allowedHeaders: "Content-Type, Authorization",
+    allowedHeaders: "Content-Type, Authorization, x-no-compression",
 }));
 app.use("/api", middleware_1.apiLimiter); // Apply rate limiter to all /api routes
 app.get("/api/ping", (req, res) => {

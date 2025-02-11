@@ -12,12 +12,13 @@ const app = express();
 const port = 3000;
 const hostName = "0.0.0.0";
 
-app.use(express.json());
+app.use(express.json()); // Ensure this is applied before routes
+
 app.use(
   cors({
     origin: "*", // Allow all origins (change this for security)
     methods: "GET,POST,PUT,DELETE",
-    allowedHeaders: "Content-Type, Authorization",
+    allowedHeaders: "Content-Type, Authorization, x-no-compression",
   })
 );
 app.use("/api", apiLimiter); // Apply rate limiter to all /api routes
