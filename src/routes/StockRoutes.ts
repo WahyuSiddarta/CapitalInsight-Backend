@@ -3,16 +3,20 @@ import * as controller from "../controllers";
 import { customApiLimiter } from "../middleware";
 
 const router = Router();
-router.get(
-  "/tickers",
-  customApiLimiter({ windowMs: 10 * 60 * 1000, max: 50 }),
-  controller.GetAllStockTicker
+// stock api group
+router.get("/stock/tickers", controller.GetAllStockTicker);
+
+// fundamental api group
+router.post(
+  "/fundamental/erm",
+  customApiLimiter({ windowMs: 1 * 60 * 1000, max: 2 }),
+  controller.CalculateERMValuation
 );
 
 router.get(
-  "/fundamental/erm",
-  customApiLimiter({ windowMs: 10 * 60 * 1000, max: 50 }),
-  controller.GetERMValuation
+  "/fundamental/custom-model",
+  customApiLimiter({ windowMs: 1 * 60 * 1000, max: 2 }),
+  controller.CalculateCustomModel
 );
 
 export default router;

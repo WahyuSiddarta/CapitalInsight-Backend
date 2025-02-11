@@ -1,18 +1,13 @@
 import { Request, Response } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { postgresPool as pool } from "../db/index";
 import { UserModel } from "../models/userModel";
+import { verifyRefreshToken } from "../helpers/tokenHelper";
 
 const secretKey = process.env.JWT_SECRET || "your_secret_key";
 const refreshSecretKey =
   process.env.JWT_REFRESH_SECRET || "your_refresh_secret_key";
 const pepper = process.env.PEPPER || "your_pepper";
-
-interface CustomJwtPayload extends JwtPayload {
-  id: number;
-  email: string;
-}
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
@@ -82,13 +77,14 @@ export const refreshToken = async (
     res.sendStatus(401);
     return;
   }
-  jwt.verify(token, refreshSecretKey, (err: any, decoded: any) => {
-    if (err || !decoded) {
-      res.sendStatus(403);
-      return;
-    }
-    const { id, email } = decoded as CustomJwtPayload;
-    const newToken = jwt.sign({ id, email }, secretKey, { expiresIn: "1h" });
-    res.json({ token: newToken });
-  });
+
+  const decoded = verifyRefreshToken(token);
+  if (!decoded) {
+    res.sendStatus(403);
+    return;
+  }
+
+  const { id, email } = decoded;
+  const newToken = jwt.sign({ id, email }, secretKey, { expiresIn: "1h" });
+  res.json({ token: newToken });
 };

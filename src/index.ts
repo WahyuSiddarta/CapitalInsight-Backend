@@ -1,10 +1,12 @@
 import express from "express";
+import compression from "compression"; // Import the compression middleware
+import cors from "cors";
+
 import pool from "./db/postgres";
 import authRoutes from "./routes/authRoutes";
 import stockRoutes from "./routes/StockRoutes";
-import compression from "compression"; // Import the compression middleware
+import UserRoutes from "./routes/UserRoutes";
 import { authenticateJWT, apiLimiter } from "./middleware";
-import cors from "cors";
 
 import logger from "./logger";
 
@@ -49,8 +51,8 @@ const startServer = async () => {
       logger.info(`Server is running on port ${port}`);
 
       app.use("/api/public", authRoutes);
-      // Apply JWT middleware and prefix /private to stockRoutes
       app.use("/api/private", authenticateJWT, stockRoutes);
+      app.use("/api/private", authenticateJWT, UserRoutes);
 
       app.use(
         compression({

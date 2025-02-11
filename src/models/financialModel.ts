@@ -23,4 +23,22 @@ export class FinancialModel {
       client.release();
     }
   }
+
+  static async getFinanceVarsByKeys(
+    keys: string[]
+  ): Promise<Record<string, any>> {
+    const client = await pool.connect();
+    try {
+      const placeholders = keys.map((_, index) => `$${index + 1}`).join(", ");
+      const query = `SELECT financial_key, financial_value FROM t_financial_variable WHERE financial_key IN (${placeholders})`;
+      const res = await client.query(query, keys);
+
+      return res.rows.reduce((acc: Record<string, any>, row: any) => {
+        acc[row.financial_key] = row.financial_value;
+        return acc;
+      }, {});
+    } finally {
+      client.release();
+    }
+  }
 }
