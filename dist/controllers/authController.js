@@ -16,6 +16,7 @@ exports.refreshToken = exports.register = exports.login = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const userModel_1 = require("../models/userModel");
+const tokenHelper_1 = require("../helpers/tokenHelper");
 const secretKey = process.env.JWT_SECRET || "your_secret_key";
 const refreshSecretKey = process.env.JWT_REFRESH_SECRET || "your_refresh_secret_key";
 const pepper = process.env.PEPPER || "your_pepper";
@@ -74,14 +75,13 @@ const refreshToken = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         res.sendStatus(401);
         return;
     }
-    jsonwebtoken_1.default.verify(token, refreshSecretKey, (err, decoded) => {
-        if (err || !decoded) {
-            res.sendStatus(403);
-            return;
-        }
-        const { id, email } = decoded;
-        const newToken = jsonwebtoken_1.default.sign({ id, email }, secretKey, { expiresIn: "1h" });
-        res.json({ token: newToken });
-    });
+    const decoded = (0, tokenHelper_1.verifyRefreshToken)(token);
+    if (!decoded) {
+        res.sendStatus(403);
+        return;
+    }
+    const { id, email } = decoded;
+    const newToken = jsonwebtoken_1.default.sign({ id, email }, secretKey, { expiresIn: "1h" });
+    res.json({ token: newToken });
 });
 exports.refreshToken = refreshToken;

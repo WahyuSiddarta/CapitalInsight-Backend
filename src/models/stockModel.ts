@@ -5,32 +5,91 @@ interface StockTicker {
 }
 
 export interface StockFinancialData {
-  ticker: string;
-  net_income: number;
-  dividen_ttm: number;
-  beta: number;
-  total_equity: number;
-  roe: number;
-  outstanding_share: number;
-  current_price: number;
-  price_at_start_year: number | null;
-  updated_at: Date;
-}
+  currentPERatioTTM: string | null;
+  ihsgPERatioTTMMedian: string | null;
+  earningsYieldTTM: string | null;
+  currentPriceToSalesTTM: string | null;
+  currentPriceToBookValue: string | null;
+  currentPriceToCashflowTTM: string | null;
+  currentPriceToFreeCashflowTTM: string | null;
+  pegRatio: string | null;
+  pegRatio3yr: string | null;
+  currentEPSAnnualised: string | null;
+  revenuePerShareTTM: string | null;
+  cashPerShareQuarter: string | null;
+  currentBookValuePerShare: string | null;
+  freeCashflowPerShareTTM: string | null;
+  currentRatioQuarter: string | null;
+  quickRatioQuarter: string | null;
+  debtToEquityRatioQuarter: string | null;
+  ltDebtToEquityQuarter: string | null;
+  totalLiabilitiesToEquityQuarter: string | null;
+  totalDebtToTotalAssetsQuarter: string | null;
+  financialLeverageQuarter: string | null;
+  interestCoverageTTM: string | null;
+  freeCashFlowQuarter: string | null;
+  returnOnAssetsTTM: string | null;
+  returnOnEquityTTM: string | null;
+  returnOnCapitalEmployedTTM: string | null;
+  returnOnInvestedCapitalTTM: string | null;
+  daysSalesOutstandingQuarter: string | null;
+  daysInventoryQuarter: string | null;
+  daysPayablesOutstandingQuarter: string | null;
+  cashConversionCycleQuarter: string | null;
+  receivablesTurnoverQuarter: string | null;
+  assetTurnoverTTM: string | null;
+  inventoryTurnoverTTM: string | null;
 
-interface StockHistoricalData {
-  id: number;
-  ticker: string;
-  updated_at: Date;
-  year: string;
+  grossProfitMarginQuarter: string | null;
+  operatingProfitMarginQuarter: string | null;
+  netProfitMarginQuarter: string | null;
+  revenueQuarterYoYGrowth: string | null;
+  grossProfitQuarterYoYGrowth: string | null;
+  netIncomeQuarterYoYGrowth: string | null;
+  marketCap: string | null;
+  enterpriseValue: string | null;
+  currentShareOutstanding: string | null;
+  dividendTTM: string | null;
+  payoutRatio: string | null;
+  dividendYield: string | null;
+  latestDividendExDate: string | null;
+
+  revenueTTM: string | null;
+  grossProfitTTM: string | null;
+  ebitdaTTM: string | null;
+  netIncomeTTM: string | null;
+  cashQuarter: string | null;
+  totalAssetsQuarter: string | null;
+  totalLiabilitiesQuarter: string | null;
+  workingCapitalQuarter: string | null;
+  totalEquity: string | null;
+  longTermDebtQuarter: string | null;
+  shortTermDebtQuarter: string | null;
+  totalDebtQuarter: string | null;
+  netDebtQuarter: string | null;
+  cashFromOperationsTTM: string | null;
+  cashFromInvestingTTM: string | null;
+  cashFromFinancingTTM: string | null;
+  capitalExpenditureTTM: string | null;
+  freeCashFlowTTM: string | null;
+  oneWeekPriceReturns: string | null;
+  threeMonthPriceReturns: string | null;
+  oneMonthPriceReturns: string | null;
+  sixMonthPriceReturns: string | null;
+  oneYearPriceReturns: string | null;
+  threeYearPriceReturns: string | null;
+  fiveYearPriceReturns: string | null;
+  tenYearPriceReturns: string | null;
+  yearToDatePriceReturns: string | null;
+  fiftyTwoWeekHigh: string | null;
+  fiftyTwoWeekLow: string | null;
 }
 
 export class StockModel {
   static async getStockTickers(): Promise<StockTicker[]> {
     const client = await pool.connect(); // Acquire a connection from the pool
     try {
-      const res = await client.query(
-        "SELECT ticker FROM t_stock_financial_information"
-      );
+      const res = await client.query("SELECT ticker FROM t_stock_financial");
       return res.rows.map((row) => ({
         ticker: row.ticker,
       }));
@@ -48,7 +107,7 @@ export class StockModel {
     const client = await pool.connect(); // Acquire a connection from the pool
     try {
       const res = await client.query(
-        "SELECT * FROM t_stock_financial_information WHERE ticker = $1",
+        "SELECT * FROM t_stock_financial WHERE ticker = $1",
         [ticker]
       );
       return res.rows[0] || null;
@@ -60,93 +119,6 @@ export class StockModel {
       throw err;
     } finally {
       client.release(); // Release the connection back to the pool
-    }
-  }
-
-  static async getStockHistoricalDataByTicker(
-    ticker: string
-  ): Promise<StockHistoricalData[]> {
-    const client = await pool.connect();
-    try {
-      const res = await client.query(
-        "SELECT * FROM t_stock_historical WHERE ticker = $1",
-        [ticker]
-      );
-      return res.rows;
-    } catch (err) {
-      console.error(
-        `Error fetching historical data for ticker ${ticker}:`,
-        err
-      );
-      throw err;
-    } finally {
-      client.release();
-    }
-  }
-
-  static async getStockHistoricalDataByYear(
-    year: string
-  ): Promise<StockHistoricalData[]> {
-    const client = await pool.connect();
-    try {
-      const res = await client.query(
-        "SELECT * FROM t_stock_historical WHERE year = $1",
-        [year]
-      );
-      return res.rows;
-    } catch (err) {
-      console.error(`Error fetching historical data for year ${year}:`, err);
-      throw err;
-    } finally {
-      client.release();
-    }
-  }
-
-  static async upsertStockFinancialInformation(
-    data: StockFinancialData
-  ): Promise<void> {
-    const client = await pool.connect();
-    try {
-      const query = `
-        INSERT INTO t_stock_financial_information (
-          ticker, net_income, dividen_ttm, beta, total_equity, roe, 
-          outstanding_share, current_price, price_at_start_year, updated_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        ON CONFLICT (ticker)
-        DO UPDATE SET 
-          net_income = EXCLUDED.net_income,
-          dividen_ttm = EXCLUDED.dividen_ttm,
-          beta = EXCLUDED.beta,
-          total_equity = EXCLUDED.total_equity,
-          roe = EXCLUDED.roe,
-          outstanding_share = EXCLUDED.outstanding_share,
-          current_price = EXCLUDED.current_price,
-          price_at_start_year = EXCLUDED.price_at_start_year,
-          updated_at = EXCLUDED.updated_at
-      `;
-      const values = [
-        data.ticker,
-        data.net_income,
-        data.dividen_ttm,
-        data.beta,
-        data.total_equity,
-        data.roe,
-        data.outstanding_share,
-        data.current_price,
-        data.price_at_start_year,
-        data.updated_at,
-      ];
-      console.log("values", values);
-      await client.query(query, values);
-    } catch (err) {
-      console.error(
-        `Error upserting stock financial information for ticker ${data.ticker}:`,
-        err
-      );
-      throw err;
-    } finally {
-      client.release();
     }
   }
 }

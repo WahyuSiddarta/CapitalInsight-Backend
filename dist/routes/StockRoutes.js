@@ -37,6 +37,9 @@ const express_1 = require("express");
 const controller = __importStar(require("../controllers"));
 const middleware_1 = require("../middleware");
 const router = (0, express_1.Router)();
-router.get("/tickers", (0, middleware_1.customApiLimiter)({ windowMs: 10 * 60 * 1000, max: 50 }), controller.GetAllStockTicker);
-router.get("/fundamental/erm", (0, middleware_1.customApiLimiter)({ windowMs: 10 * 60 * 1000, max: 50 }), controller.GetERMValuation);
+// stock api group
+router.get("/stock/tickers", controller.GetAllStockTicker);
+// fundamental api group
+router.post("/fundamental/erm", (0, middleware_1.customApiLimiter)({ windowMs: 1 * 60 * 1000, max: 2 }), controller.CalculateERMValuation);
+router.get("/fundamental/custom-model", (0, middleware_1.customApiLimiter)({ windowMs: 1 * 60 * 1000, max: 2 }), controller.CalculateCustomModel);
 exports.default = router;

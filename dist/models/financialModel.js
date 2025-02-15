@@ -27,5 +27,22 @@ class FinancialModel {
             }
         });
     }
+    static getFinanceVarsByKeys(keys) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const client = yield postgres_1.default.connect();
+            try {
+                const placeholders = keys.map((_, index) => `$${index + 1}`).join(", ");
+                const query = `SELECT financial_key, financial_value FROM t_financial_variable WHERE financial_key IN (${placeholders})`;
+                const res = yield client.query(query, keys);
+                return res.rows.reduce((acc, row) => {
+                    acc[row.financial_key] = row.financial_value;
+                    return acc;
+                }, {});
+            }
+            finally {
+                client.release();
+            }
+        });
+    }
 }
 exports.FinancialModel = FinancialModel;

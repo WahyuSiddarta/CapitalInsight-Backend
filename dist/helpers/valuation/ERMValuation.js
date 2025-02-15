@@ -1,57 +1,46 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ERMValuation = void 0;
 const format_1 = require("../format");
-const bignumber_js_1 = __importDefault(require("bignumber.js"));
 class ERMValuation {
-    constructor(stockData) {
-        this.stockData = stockData;
-        this.costOfEquity = new bignumber_js_1.default(0);
-    }
-    calculateCostOfEquity(risk_free_rate, market_return) {
-        const { beta } = this.stockData;
+    calculateCostOfEquity(risk_free_rate, // 0-100
+    market_return, // 0-100
+    beta // 0-1
+    ) {
         const equityRiskPremium = market_return - risk_free_rate;
-        this.costOfEquity = new bignumber_js_1.default(risk_free_rate + beta * equityRiskPremium);
-        return this;
+        return risk_free_rate + beta * equityRiskPremium; // 0-100
     }
-    calculateFairValue() {
-        const costOfEquity = (0, format_1.percentToDecimal)(Number(this.costOfEquity));
-        const BVPS = new bignumber_js_1.default(this.stockData.total_equity / this.stockData.outstanding_share);
-        const excessReturn = new bignumber_js_1.default((0, format_1.percentToDecimal)(this.stockData.roe))
-            .minus(Number(costOfEquity))
-            .multipliedBy(BVPS);
-        let fairValue = excessReturn.dividedBy(1 + costOfEquity);
-        let NewBVPS = BVPS;
-        for (let i = 0; i < 9; i++) {
-            let newRoe = this.stockData.roe;
-            if (i > 3) {
-                // decay 2% rate until stable value of 10%
-                newRoe = Math.min(0.1, newRoe - i * 0.02);
-            }
-            NewBVPS = NewBVPS.multipliedBy((0, format_1.percentToDecimal)(i > 3 ? 0.05 : this.stockData.roe)).plus(NewBVPS);
-            const NewExcessReturn = new bignumber_js_1.default((0, format_1.percentToDecimal)(this.stockData.roe))
-                .minus(Number(costOfEquity))
-                .multipliedBy(NewBVPS);
-            const newFairValue = NewExcessReturn.dividedBy(1 + costOfEquity);
-            fairValue = fairValue.plus(newFairValue);
+    // COC is cost of capital, number between 0-100
+    // BVPS is book value per share
+    // ROE is return on equity, number between 0-100
+    // TERMINAL_YEAR is the year at which the calculation stops, UI only support 5-10 Years
+    // DECLINE_YEAR is the year at which the ROE starts to decline, if do not use decay, this value must be the same as TERMINAL_YEAR
+    // FINAL_ROE is the final ROE value, number between 0-100, if do not use decay, this value must be the same as ROE
+    calculateFairValue(COC, BVPS, ROE, TERMINAL_YEAR, DECLINE_YEAR, FINAL_ROE) {
+        // prepare data
+        let decayRate = 0;
+        if (TERMINAL_YEAR > DECLINE_YEAR) {
+            const yearOperate = TERMINAL_YEAR - DECLINE_YEAR;
+            decayRate = (ROE - FINAL_ROE) / yearOperate;
         }
-        fairValue = fairValue.plus(BVPS);
-        // Console log all variables
-        console.log(this.stockData.ticker);
-        console.log("roe:", this.stockData.roe);
-        console.log("beta:", this.stockData.beta);
-        console.log("costOfEquity:", costOfEquity.toString());
-        console.log("BVPS:", BVPS.toString());
-        console.log("excessReturn:", excessReturn.toString());
-        console.log("fairValue:", fairValue.toString());
-        console.log("EPS:", this.stockData.net_income / this.stockData.outstanding_share);
-        return fairValue; // Replace with actual calculation logic
-    }
-    getCostOfEquity() {
-        return this.costOfEquity.toNumber();
+        let final_roe = (0, format_1.percentToDecimal)(FINAL_ROE);
+        const costOfEquity = (0, format_1.percentToDecimal)(COC);
+        const initialExcessReturn = ((0, format_1.percentToDecimal)(ROE) - costOfEquity) * BVPS;
+        let fairValue = initialExcessReturn / (1 + costOfEquity);
+        let NewBVPS = BVPS;
+        for (let i = 1; i <= TERMINAL_YEAR; i++) {
+            let newRoe = ROE;
+            if (i > DECLINE_YEAR) {
+                // decay until final roe
+                newRoe = Math.max(final_roe, ROE - (i - DECLINE_YEAR) * decayRate);
+            }
+            NewBVPS = NewBVPS * (1 + (0, format_1.percentToDecimal)(newRoe));
+            const NewExcessReturn = ((0, format_1.percentToDecimal)(newRoe) - costOfEquity) * NewBVPS;
+            const newFairValue = NewExcessReturn / (1 + costOfEquity);
+            fairValue += newFairValue;
+        }
+        fairValue += BVPS;
+        return { fairValue, costOfEquity };
     }
 }
 exports.ERMValuation = ERMValuation;

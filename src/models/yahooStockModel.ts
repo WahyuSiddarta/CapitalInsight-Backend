@@ -68,4 +68,24 @@ export class YahooStockModel {
       return null;
     }
   }
+
+  static async getBetaByTicker(ticker: string): Promise<number | null> {
+    try {
+      const quote: any = await yahooFinance.quoteSummary(ticker, {
+        modules: ["summaryDetail"],
+      });
+
+      if (!quote || !quote.summaryDetail) {
+        return null;
+      }
+
+      return quote.summaryDetail.beta || null;
+    } catch (err) {
+      console.error(
+        `Error fetching beta from Yahoo Finance for ticker ${ticker}:`,
+        err
+      );
+      return null;
+    }
+  }
 }

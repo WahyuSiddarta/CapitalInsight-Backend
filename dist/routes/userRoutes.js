@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const controller = __importStar(require("../controllers"));
-const middleware_1 = require("../middleware");
 const router = (0, express_1.Router)();
-router.get("/", middleware_1.authenticateJWT, controller.getUsers);
+// user api group
+router.get("/user", controller.getUserData);
 exports.default = router;

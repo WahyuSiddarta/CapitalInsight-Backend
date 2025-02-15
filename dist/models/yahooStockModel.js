@@ -59,5 +59,22 @@ class YahooStockModel {
             }
         });
     }
+    static getBetaByTicker(ticker) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const quote = yield yahoo_finance2_1.default.quoteSummary(ticker, {
+                    modules: ["summaryDetail"],
+                });
+                if (!quote || !quote.summaryDetail) {
+                    return null;
+                }
+                return quote.summaryDetail.beta || null;
+            }
+            catch (err) {
+                console.error(`Error fetching beta from Yahoo Finance for ticker ${ticker}:`, err);
+                return null;
+            }
+        });
+    }
 }
 exports.YahooStockModel = YahooStockModel;

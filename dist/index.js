@@ -13,12 +13,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const compression_1 = __importDefault(require("compression")); // Import the compression middleware
+const cors_1 = __importDefault(require("cors"));
 const postgres_1 = __importDefault(require("./db/postgres"));
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const StockRoutes_1 = __importDefault(require("./routes/StockRoutes"));
-const compression_1 = __importDefault(require("compression")); // Import the compression middleware
+const UserRoutes_1 = __importDefault(require("./routes/UserRoutes"));
 const middleware_1 = require("./middleware");
-const cors_1 = __importDefault(require("cors"));
 const logger_1 = __importDefault(require("./logger"));
 const app = (0, express_1.default)();
 const port = 3000;
@@ -51,8 +52,8 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         app.listen(port, hostName, () => {
             logger_1.default.info(`Server is running on port ${port}`);
             app.use("/api/public", authRoutes_1.default);
-            // Apply JWT middleware and prefix /private to stockRoutes
             app.use("/api/private", middleware_1.authenticateJWT, StockRoutes_1.default);
+            app.use("/api/private", middleware_1.authenticateJWT, UserRoutes_1.default);
             app.use((0, compression_1.default)({
                 filter: (req, res) => {
                     if (req.headers["x-no-compression"]) {

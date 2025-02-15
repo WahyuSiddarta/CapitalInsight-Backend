@@ -1,80 +1,57 @@
-import { StockFinancialData } from "../../models/stockModel";
 import { percentToDecimal } from "../format";
-import BigNumber from "bignumber.js";
 
 export class ERMValuation {
-  private stockData: StockFinancialData;
-  private costOfEquity: BigNumber;
-
-  constructor(stockData: StockFinancialData) {
-    this.stockData = stockData;
-    this.costOfEquity = new BigNumber(0);
-  }
-
   public calculateCostOfEquity(
-    risk_free_rate: number,
-    market_return: number
-  ): this {
-    const { beta } = this.stockData;
+    risk_free_rate: number, // 0-100
+    market_return: number, // 0-100
+    beta: number // 0-1
+  ): number {
     const equityRiskPremium = market_return - risk_free_rate;
-    this.costOfEquity = new BigNumber(
-      risk_free_rate + beta * equityRiskPremium
-    );
-
-    return this;
+    return risk_free_rate + beta * equityRiskPremium; // 0-100
   }
 
-  public calculateFairValue(): BigNumber {
-    const costOfEquity = percentToDecimal(Number(this.costOfEquity));
-    const BVPS = new BigNumber(
-      this.stockData.total_equity / this.stockData.outstanding_share
-    );
-    const excessReturn = new BigNumber(percentToDecimal(this.stockData.roe))
-      .minus(Number(costOfEquity))
-      .multipliedBy(BVPS);
+  // COC is cost of capital, number between 0-100
+  // BVPS is book value per share
+  // ROE is return on equity, number between 0-100
+  // TERMINAL_YEAR is the year at which the calculation stops, UI only support 5-10 Years
+  // DECLINE_YEAR is the year at which the ROE starts to decline, if do not use decay, this value must be the same as TERMINAL_YEAR
+  // FINAL_ROE is the final ROE value, number between 0-100, if do not use decay, this value must be the same as ROE
+  public calculateFairValue(
+    COC: number,
+    BVPS: number,
+    ROE: number,
+    TERMINAL_YEAR: number,
+    DECLINE_YEAR: number,
+    FINAL_ROE: number
+  ): { fairValue: number; costOfEquity: number } {
+    // prepare data
+    let decayRate = 0;
+    if (TERMINAL_YEAR > DECLINE_YEAR) {
+      const yearOperate = TERMINAL_YEAR - DECLINE_YEAR;
+      decayRate = (ROE - FINAL_ROE) / yearOperate;
+    }
+    let final_roe = percentToDecimal(FINAL_ROE);
+    const costOfEquity = percentToDecimal(COC);
+    const initialExcessReturn = (percentToDecimal(ROE) - costOfEquity) * BVPS;
 
-    let fairValue = excessReturn.dividedBy(1 + costOfEquity);
+    let fairValue = initialExcessReturn / (1 + costOfEquity);
     let NewBVPS = BVPS;
-    for (let i = 0; i < 9; i++) {
-      let newRoe = this.stockData.roe;
-      if (i > 3) {
-        // decay 2% rate until stable value of 10%
-        newRoe = Math.min(0.1, newRoe - i * 0.02);
+    for (let i = 1; i <= TERMINAL_YEAR; i++) {
+      let newRoe = ROE;
+      if (i > DECLINE_YEAR) {
+        // decay until final roe
+        newRoe = Math.max(final_roe, ROE - (i - DECLINE_YEAR) * decayRate);
       }
-      NewBVPS = NewBVPS.multipliedBy(
-        percentToDecimal(i > 3 ? 0.05 : this.stockData.roe)
-      ).plus(NewBVPS);
+      NewBVPS = NewBVPS * (1 + percentToDecimal(newRoe));
+      const NewExcessReturn =
+        (percentToDecimal(newRoe) - costOfEquity) * NewBVPS;
 
-      const NewExcessReturn = new BigNumber(
-        percentToDecimal(this.stockData.roe)
-      )
-        .minus(Number(costOfEquity))
-        .multipliedBy(NewBVPS);
-
-      const newFairValue = NewExcessReturn.dividedBy(1 + costOfEquity);
-      fairValue = fairValue.plus(newFairValue);
+      const newFairValue = NewExcessReturn / (1 + costOfEquity);
+      fairValue += newFairValue;
     }
 
-    fairValue = fairValue.plus(BVPS);
+    fairValue += BVPS;
 
-    // Console log all variables
-    console.log(this.stockData.ticker);
-    console.log("roe:", this.stockData.roe);
-    console.log("beta:", this.stockData.beta);
-    console.log("costOfEquity:", costOfEquity.toString());
-    console.log("BVPS:", BVPS.toString());
-    console.log("excessReturn:", excessReturn.toString());
-
-    console.log("fairValue:", fairValue.toString());
-    console.log(
-      "EPS:",
-      this.stockData.net_income / this.stockData.outstanding_share
-    );
-
-    return fairValue; // Replace with actual calculation logic
-  }
-
-  public getCostOfEquity(): number {
-    return this.costOfEquity.toNumber();
+    return { fairValue, costOfEquity };
   }
 }
