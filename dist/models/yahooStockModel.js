@@ -64,7 +64,7 @@ class YahooStockModel {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const quote = yield yahoo_finance2_1.default.quoteSummary(ticker, {
-                    modules: ["summaryDetail"],
+                    modules: ["summaryDetail", "price"],
                 });
                 if (!quote || !quote.summaryDetail) {
                     return null;

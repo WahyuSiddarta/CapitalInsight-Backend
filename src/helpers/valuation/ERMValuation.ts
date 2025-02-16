@@ -1,3 +1,4 @@
+import logger from "../../logger";
 import { percentToDecimal } from "../format";
 
 export class ERMValuation {
@@ -30,9 +31,13 @@ export class ERMValuation {
       const yearOperate = TERMINAL_YEAR - DECLINE_YEAR;
       decayRate = (ROE - FINAL_ROE) / yearOperate;
     }
+    logger.info(`ERMValuation: decayRate ${decayRate}`);
     let final_roe = percentToDecimal(FINAL_ROE);
+    logger.info(`ERMValuation: FINAL_ROE ${FINAL_ROE}`);
     const costOfEquity = percentToDecimal(COC);
+    logger.info(`ERMValuation: COC ${COC}`);
     const initialExcessReturn = (percentToDecimal(ROE) - costOfEquity) * BVPS;
+    logger.info(`ERMValuation: initialExcessReturn ${initialExcessReturn}`);
 
     let fairValue = initialExcessReturn / (1 + costOfEquity);
     let NewBVPS = BVPS;
@@ -46,10 +51,14 @@ export class ERMValuation {
       const NewExcessReturn =
         (percentToDecimal(newRoe) - costOfEquity) * NewBVPS;
 
+      logger.info(`ERMValuation: NewExcessReturn ${i} : ${NewExcessReturn}`);
       const newFairValue = NewExcessReturn / (1 + costOfEquity);
       fairValue += newFairValue;
+      logger.info(`ERMValuation: fairValue ${i} : ${fairValue}`);
     }
 
+    logger.info(`ERMValuation: calculateFairValue ${BVPS}`);
+    logger.info(`ERMValuation: calculateFairValue ${fairValue}`);
     fairValue += BVPS;
 
     return { fairValue, costOfEquity };

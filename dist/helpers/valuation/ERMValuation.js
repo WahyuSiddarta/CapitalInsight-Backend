@@ -1,6 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ERMValuation = void 0;
+const logger_1 = __importDefault(require("../../logger"));
 const format_1 = require("../format");
 class ERMValuation {
     calculateCostOfEquity(risk_free_rate, // 0-100
@@ -23,9 +27,13 @@ class ERMValuation {
             const yearOperate = TERMINAL_YEAR - DECLINE_YEAR;
             decayRate = (ROE - FINAL_ROE) / yearOperate;
         }
+        logger_1.default.info(`ERMValuation: decayRate ${decayRate}`);
         let final_roe = (0, format_1.percentToDecimal)(FINAL_ROE);
+        logger_1.default.info(`ERMValuation: FINAL_ROE ${FINAL_ROE}`);
         const costOfEquity = (0, format_1.percentToDecimal)(COC);
+        logger_1.default.info(`ERMValuation: COC ${COC}`);
         const initialExcessReturn = ((0, format_1.percentToDecimal)(ROE) - costOfEquity) * BVPS;
+        logger_1.default.info(`ERMValuation: initialExcessReturn ${initialExcessReturn}`);
         let fairValue = initialExcessReturn / (1 + costOfEquity);
         let NewBVPS = BVPS;
         for (let i = 1; i <= TERMINAL_YEAR; i++) {
@@ -36,9 +44,13 @@ class ERMValuation {
             }
             NewBVPS = NewBVPS * (1 + (0, format_1.percentToDecimal)(newRoe));
             const NewExcessReturn = ((0, format_1.percentToDecimal)(newRoe) - costOfEquity) * NewBVPS;
+            logger_1.default.info(`ERMValuation: NewExcessReturn ${i} : ${NewExcessReturn}`);
             const newFairValue = NewExcessReturn / (1 + costOfEquity);
             fairValue += newFairValue;
+            logger_1.default.info(`ERMValuation: fairValue ${i} : ${fairValue}`);
         }
+        logger_1.default.info(`ERMValuation: calculateFairValue ${BVPS}`);
+        logger_1.default.info(`ERMValuation: calculateFairValue ${fairValue}`);
         fairValue += BVPS;
         return { fairValue, costOfEquity };
     }

@@ -12,13 +12,13 @@ router.get("/stock/tickers", controller.GetAllStockTicker);
 // fundamental api group
 router.post(
   "/fundamental/erm",
-  customApiLimiter({ windowMs: 1 * 60 * 1000, max: 2 }),
+  customApiLimiter({ windowMs: 1 * 60 * 1000, max: 60 }),
   controller.CalculateERMValuation
 );
 
 router.post(
   "/fundamental/custom-model",
-  customApiLimiter({ windowMs: 1 * 60 * 1000, max: 2 }),
+  customApiLimiter({ windowMs: 1 * 60 * 1000, max: 60 }),
   controller.CalculateCustomModel
 );
 

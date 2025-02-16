@@ -45,6 +45,6 @@ router.use(express_2.default.urlencoded({ extended: true }));
 // stock api group
 router.get("/stock/tickers", controller.GetAllStockTicker);
 // fundamental api group
-router.post("/fundamental/erm", (0, middleware_1.customApiLimiter)({ windowMs: 1 * 60 * 1000, max: 2 }), controller.CalculateERMValuation);
-router.post("/fundamental/custom-model", (0, middleware_1.customApiLimiter)({ windowMs: 1 * 60 * 1000, max: 2 }), controller.CalculateCustomModel);
+router.post("/fundamental/erm", (0, middleware_1.customApiLimiter)({ windowMs: 1 * 60 * 1000, max: 60 }), controller.CalculateERMValuation);
+router.post("/fundamental/custom-model", (0, middleware_1.customApiLimiter)({ windowMs: 1 * 60 * 1000, max: 60 }), controller.CalculateCustomModel);
 exports.default = router;

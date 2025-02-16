@@ -73,7 +73,7 @@ export class YahooStockModel {
   static async getBetaByTicker(ticker: string): Promise<number | null> {
     try {
       const quote: any = await yahooFinance.quoteSummary(ticker, {
-        modules: ["summaryDetail"],
+        modules: ["summaryDetail", "price"],
       });
 
       if (!quote || !quote.summaryDetail) {

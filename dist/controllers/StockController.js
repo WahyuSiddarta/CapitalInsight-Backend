@@ -103,14 +103,14 @@ const CalculateERMValuation = (req, res) => __awaiter(void 0, void 0, void 0, fu
             error: `Error on DB ticker ${ticker} : ${stockData.currentBookValuePerShare}`,
         });
     }
-    let roe = Number(stockData.returnOnAssetsTTM);
+    let roe = Number(stockData.returnOnEquityTTM);
     if (isNaN(roe)) {
         return res.status(400).json({
-            error: `Error on DB ${ticker} : ${stockData.returnOnAssetsTTM}`,
+            error: `Error on DB ${ticker} : ${stockData.returnOnEquityTTM}`,
         });
     }
     // temporary fetch beta from yahoo, beta should be collected by cron job
-    let yahooBeta = yahooStockModel_1.YahooStockModel.getStockInformationByTicker(ticker + ".JK");
+    let yahooBeta = yield yahooStockModel_1.YahooStockModel.getBetaByTicker(ticker + ".JK");
     if (!yahooBeta || isNaN(Number(yahooBeta))) {
         return res
             .status(422)
@@ -153,9 +153,9 @@ const CalculateERMValuation = (req, res) => __awaiter(void 0, void 0, void 0, fu
             error: "Final ROE must be a number",
         });
     }
-    if (!!final_roe_params && final_roe_num >= 0 && final_roe_num <= 100) {
+    if (!!final_roe_params && !(final_roe_num >= 0 && final_roe_num <= 100)) {
         return res.status(400).json({
-            error: "Final ROE must be between 0 and 100",
+            error: `Final ROE must be between 0 and 100 : ${final_roe_num}`,
         });
     }
     // if param is not provided, set it to terminal year
