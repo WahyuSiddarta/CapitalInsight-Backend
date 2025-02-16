@@ -11,15 +11,25 @@ function percentToDecimal(input) {
     return input / 100;
 }
 function convertToNumber(value) {
-    const [numberPart, unit] = value.split(" ");
-    const number = new bignumber_js_1.default(numberPart.replace(/,/g, ""));
-    switch (unit) {
-        case "B":
-            return number.multipliedBy(1e9);
-        case "M":
-            return number.multipliedBy(1e6);
-        default:
-            return number;
+    try {
+        console.log("value ", value, typeof value);
+        if (typeof value !== "string") {
+            return new bignumber_js_1.default(0);
+        }
+        const [numberPart, unit] = value === null || value === void 0 ? void 0 : value.split(" ");
+        const number = new bignumber_js_1.default(numberPart === null || numberPart === void 0 ? void 0 : numberPart.replace(/,/g, ""));
+        switch (unit) {
+            case "B":
+                return number.multipliedBy(1e9);
+            case "M":
+                return number.multipliedBy(1e6);
+            default:
+                return number;
+        }
+    }
+    catch (error) {
+        console.error("Error converting value to number:", error);
+        return new bignumber_js_1.default(0);
     }
 }
 function calculateEPS(outstanding_share, net_income) {

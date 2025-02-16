@@ -1,3 +1,4 @@
+import logger from "../../logger";
 import { percentToDecimal } from "../format";
 
 export class CustomValuation {
@@ -5,11 +6,13 @@ export class CustomValuation {
   private maxNetIncome = 20000000;
 
   public calculateConviction(conviction: number): number {
+    logger.info("conviction ", conviction);
     const maxPE = 35;
     const minPE = 20;
     const minConviction = 80;
     const maxConviction = 99;
     const convictionRate = (maxPE - minPE) / (maxConviction - minConviction);
+    logger.info("convictionRate ", convictionRate);
     return (conviction - minConviction) * convictionRate + minPE;
   }
 
@@ -17,7 +20,7 @@ export class CustomValuation {
     const discountedFactor = 1;
     const maxStability = 99;
     const deltaStability = maxStability - stability;
-    return pe * percentToDecimal(1 - deltaStability * discountedFactor);
+    return pe * (1 - percentToDecimal(deltaStability * discountedFactor));
   }
 
   private calculateDiscountedReturn(pe: number, rateOfReturn: number): number {
@@ -27,7 +30,7 @@ export class CustomValuation {
       return pe;
     }
     const deltaRateOfReturn = minRateOfReturn - rateOfReturn;
-    return pe * percentToDecimal(1 - deltaRateOfReturn * discountedFactor);
+    return pe * (1 - percentToDecimal(deltaRateOfReturn * discountedFactor));
   }
 
   private calculateDiscountedGrowth(pe: number, growth: number): number {
@@ -37,7 +40,7 @@ export class CustomValuation {
       return pe;
     }
     const deltaGrowth = minGrowth - growth;
-    return pe * percentToDecimal(1 - deltaGrowth * discountedFactor);
+    return pe * (1 - percentToDecimal(deltaGrowth * discountedFactor));
   }
 
   private calculateDiscountedDividen(pe: number, dividen: number): number {
@@ -47,17 +50,18 @@ export class CustomValuation {
       return pe;
     }
     const deltaDividen = minDividen - dividen;
-    return pe * percentToDecimal(1 - deltaDividen * discountedFactor);
+    return pe * (1 - percentToDecimal(deltaDividen * discountedFactor));
   }
 
   private calculateDiscountedLeverage(pe: number, leverage: number): number {
     const discountedFactor = 0.3;
     const maxLeverage = 30;
-    if (leverage < maxLeverage) {
+    const leverageConverted = (1 / leverage) * 100;
+    if (leverageConverted < maxLeverage) {
       return pe;
     }
-    const deltaLeverage = leverage - maxLeverage;
-    return pe * percentToDecimal(1 - deltaLeverage * discountedFactor);
+    const deltaLeverage = leverageConverted - maxLeverage;
+    return pe * (1 - percentToDecimal(deltaLeverage * discountedFactor));
   }
 
   private calculateDiscountedSmallCap(pe: number, netIncome: number): number {
@@ -68,7 +72,7 @@ export class CustomValuation {
     const discountedFactor = deltaDisc / deltaIncome;
     const calculatedIncome = netIncome - this.minNetIncome;
     const discountedRate = calculatedIncome * discountedFactor + minDisc;
-    return pe * percentToDecimal(1 - discountedRate);
+    return pe * (1 - percentToDecimal(discountedRate));
   }
 
   private calculateDiscountedLargeCap(
@@ -81,14 +85,14 @@ export class CustomValuation {
       return pe;
     }
     const deltaMarketShare = minMarketShare - market_share;
-    return pe * percentToDecimal(1 - deltaMarketShare * discountedFactor);
+    return pe * (1 - percentToDecimal(deltaMarketShare * discountedFactor));
   }
 
   private calculateDiscountedAsset(
     BVPS: number,
     discounted_rate: number
   ): number {
-    return BVPS * percentToDecimal(1 - discounted_rate);
+    return BVPS * (1 - percentToDecimal(discounted_rate));
   }
 
   public calculateFairValue(
@@ -107,20 +111,42 @@ export class CustomValuation {
     if (net_income < this.minNetIncome) {
       return 0;
     }
+
+    console.log("BVPS: ", BVPS);
+    console.log("EPS: ", EPS);
+    console.log("discounted_asset: ", discounted_asset);
+    console.log("user_conviction: ", user_conviction);
+    console.log("stability: ", stability);
+    console.log("growth_rate: ", growth_rate);
+    console.log("ROE: ", ROE);
+    console.log("dividen: ", dividen);
+    console.log("market_share: ", market_share);
+    console.log("net_income: ", net_income);
+    console.log("leverage: ", leverage);
+
     let pe = this.calculateConviction(user_conviction);
+    console.log("1:", pe);
     pe = this.calculateDiscountedStability(pe, stability);
+    console.log("2:", pe);
     pe = this.calculateDiscountedReturn(pe, ROE);
+    console.log("3:", pe);
     pe = this.calculateDiscountedGrowth(pe, growth_rate);
+    console.log("4:", pe);
     pe = this.calculateDiscountedDividen(pe, dividen);
+    console.log("5:", pe);
     pe = this.calculateDiscountedLeverage(pe, leverage);
+    console.log("6:", pe);
 
     if (net_income > this.minNetIncome) {
       pe = this.calculateDiscountedLargeCap(pe, market_share);
     } else {
       pe = this.calculateDiscountedSmallCap(pe, net_income);
     }
+    console.log("7:", pe);
     let futureValue = EPS * pe;
+    console.log("8:", futureValue);
     let todayValue = this.calculateDiscountedAsset(BVPS, discounted_asset);
+    console.log("9:", todayValue);
     return todayValue + futureValue;
   }
 }

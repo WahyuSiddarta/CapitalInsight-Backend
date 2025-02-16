@@ -212,7 +212,7 @@ const customModelSchema = Yup.object().shape({
         .min(0, "Market share must be between 0 and 100")
         .max(100, "Market share must be between 0 and 100")
         .when("net_income", (net_income, schema) => {
-        const realNetIncome = (0, format_1.convertToNumber)(net_income);
+        const realNetIncome = (0, format_1.convertToNumber)(typeof net_income === "string" ? net_income : net_income[0]);
         return realNetIncome.isGreaterThan(5000000000000)
             ? schema.required("Market share is required when net income is greater than 5,000,000,000,000")
             : schema.notRequired();
@@ -221,10 +221,7 @@ const customModelSchema = Yup.object().shape({
         .min(0, "Discounted asset must be between 0 and 100")
         .max(50, "Discounted asset must be between 0 and 100")
         .required("Discounted asset is required and must be a number"),
-    growth_rate: Yup.number()
-        .min(0, "Growth rate must be between 0 and 100")
-        .max(100, "Growth rate must be between 0 and 100")
-        .required("Growth rate is required and must be a number"),
+    growth_rate: Yup.number().required("Growth rate is required and must be a number"),
     dividen: Yup.number()
         .min(0, "Dividen must be between 0 and 100")
         .max(100, "Dividen must be between 0 and 100")
@@ -232,12 +229,21 @@ const customModelSchema = Yup.object().shape({
 });
 const CalculateCustomModel = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { ticker, discounted_asset, user_conviction, net_income, market_share, stability, growth_rate, dividen, } = req.body;
+    if (!ticker ||
+        !discounted_asset ||
+        !user_conviction ||
+        !net_income ||
+        !stability ||
+        !growth_rate ||
+        !dividen) {
+        return res.status(400).json({ error: "Missing required parameters" });
+    }
     const data = {
         ticker,
         discounted_asset: Number(discounted_asset),
         user_conviction: Number(user_conviction),
         net_income,
-        market_share: Number(market_share),
+        market_share: isNaN(Number(market_share)) ? 0 : Number(market_share),
         stability: Number(stability),
         growth_rate: Number(growth_rate),
         dividen: Number(dividen),
@@ -249,7 +255,9 @@ const CalculateCustomModel = (req, res) => __awaiter(void 0, void 0, void 0, fun
         if (validationError instanceof Yup.ValidationError) {
             return res.status(400).json({ errors: validationError.errors });
         }
-        return res.status(400).json({ error: "Validation failed" });
+        return res
+            .status(400)
+            .json({ error: `Validation failed ${validationError}` });
     }
     try {
         let stockData = yield (0, executeWithCatch_1.executeWithCatch)(() => stockModel_1.StockModel.getStockInformationByTicker(ticker));
@@ -259,10 +267,11 @@ const CalculateCustomModel = (req, res) => __awaiter(void 0, void 0, void 0, fun
                 .status(422)
                 .json({ error: `Stock data not found for ticker: ${ticker}` });
         }
-        if (!stockData.totalEquity ||
+        if (!stockData.currentShareOutstanding ||
             !stockData.currentBookValuePerShare ||
             !stockData.returnOnEquityTTM ||
             !stockData.financialLeverageQuarter) {
+            logger_1.default.error(`Stock data not found for ticker: ${ticker} : ${stockData.currentShareOutstanding} : ${stockData.currentBookValuePerShare} : ${stockData.returnOnEquityTTM} : ${stockData.financialLeverageQuarter}`);
             return res.status(422).json({
                 error: `Total Equity, Current Book Value Per Share, or Return on Equity not found for ticker: ${ticker}`,
             });
@@ -274,9 +283,9 @@ const CalculateCustomModel = (req, res) => __awaiter(void 0, void 0, void 0, fun
                 error: `Current Book Value Per Share or Return on Equity is not a number for ticker: ${ticker}`,
             });
         }
-        let EPS = (0, format_1.calculateEPS)(stockData.totalEquity, net_income);
-        const ermValuation = new CustomValuation_1.CustomValuation();
-        const fair_value = ermValuation.calculateFairValue(Number(stockData.currentBookValuePerShare), EPS, data.discounted_asset, data.user_conviction, data.stability, data.growth_rate, Number(stockData.returnOnEquityTTM), data.dividen, data.market_share, data.net_income, Number(stockData.financialLeverageQuarter));
+        let EPS = (0, format_1.calculateEPS)(stockData.currentShareOutstanding, net_income);
+        const customValuation = new CustomValuation_1.CustomValuation();
+        const fair_value = customValuation.calculateFairValue(Number(stockData.currentBookValuePerShare), EPS, data.discounted_asset, data.user_conviction, data.stability, data.growth_rate, Number(stockData.returnOnEquityTTM), data.dividen, data.market_share, (0, format_1.convertToNumber)(data.net_income).toNumber(), Number(stockData.financialLeverageQuarter));
         return res.json({
             data: fair_value,
             ticker: ticker,

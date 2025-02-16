@@ -63,3 +63,5 @@ build/
 # TypeScript
 *.tsbuildinfo
 /DDL
+
+deployer.sh

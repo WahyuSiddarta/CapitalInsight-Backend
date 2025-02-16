@@ -214,8 +214,13 @@ const customModelSchema = Yup.object().shape({
     .max(100, "Market share must be between 0 and 100")
     .when(
       "net_income",
-      (net_income: any, schema: Yup.NumberSchema<number | undefined>) => {
-        const realNetIncome = convertToNumber(net_income);
+      (
+        net_income: string | string[],
+        schema: Yup.NumberSchema<number | undefined>
+      ) => {
+        const realNetIncome = convertToNumber(
+          typeof net_income === "string" ? net_income : net_income[0]
+        );
         return realNetIncome.isGreaterThan(5000000000000)
           ? schema.required(
               "Market share is required when net income is greater than 5,000,000,000,000"
@@ -228,10 +233,9 @@ const customModelSchema = Yup.object().shape({
     .max(50, "Discounted asset must be between 0 and 100")
     .required("Discounted asset is required and must be a number"),
 
-  growth_rate: Yup.number()
-    .min(0, "Growth rate must be between 0 and 100")
-    .max(100, "Growth rate must be between 0 and 100")
-    .required("Growth rate is required and must be a number"),
+  growth_rate: Yup.number().required(
+    "Growth rate is required and must be a number"
+  ),
   dividen: Yup.number()
     .min(0, "Dividen must be between 0 and 100")
     .max(100, "Dividen must be between 0 and 100")
@@ -252,12 +256,25 @@ export const CalculateCustomModel = async (
     growth_rate,
     dividen,
   } = req.body;
+
+  if (
+    !ticker ||
+    !discounted_asset ||
+    !user_conviction ||
+    !net_income ||
+    !stability ||
+    !growth_rate ||
+    !dividen
+  ) {
+    return res.status(400).json({ error: "Missing required parameters" });
+  }
+
   const data = {
     ticker,
     discounted_asset: Number(discounted_asset),
     user_conviction: Number(user_conviction),
     net_income,
-    market_share: Number(market_share),
+    market_share: isNaN(Number(market_share)) ? 0 : Number(market_share),
     stability: Number(stability),
     growth_rate: Number(growth_rate),
     dividen: Number(dividen),
@@ -269,7 +286,9 @@ export const CalculateCustomModel = async (
     if (validationError instanceof Yup.ValidationError) {
       return res.status(400).json({ errors: validationError.errors });
     }
-    return res.status(400).json({ error: "Validation failed" });
+    return res
+      .status(400)
+      .json({ error: `Validation failed ${validationError}` });
   }
 
   try {
@@ -285,11 +304,14 @@ export const CalculateCustomModel = async (
     }
 
     if (
-      !stockData.totalEquity ||
+      !stockData.currentShareOutstanding ||
       !stockData.currentBookValuePerShare ||
       !stockData.returnOnEquityTTM ||
       !stockData.financialLeverageQuarter
     ) {
+      logger.error(
+        `Stock data not found for ticker: ${ticker} : ${stockData.currentShareOutstanding} : ${stockData.currentBookValuePerShare} : ${stockData.returnOnEquityTTM} : ${stockData.financialLeverageQuarter}`
+      );
       return res.status(422).json({
         error: `Total Equity, Current Book Value Per Share, or Return on Equity not found for ticker: ${ticker}`,
       });
@@ -303,10 +325,10 @@ export const CalculateCustomModel = async (
         error: `Current Book Value Per Share or Return on Equity is not a number for ticker: ${ticker}`,
       });
     }
-    let EPS = calculateEPS(stockData.totalEquity, net_income);
+    let EPS = calculateEPS(stockData.currentShareOutstanding, net_income);
 
-    const ermValuation = new CustomValuation();
-    const fair_value = ermValuation.calculateFairValue(
+    const customValuation = new CustomValuation();
+    const fair_value = customValuation.calculateFairValue(
       Number(stockData.currentBookValuePerShare),
       EPS,
       data.discounted_asset,
@@ -316,7 +338,7 @@ export const CalculateCustomModel = async (
       Number(stockData.returnOnEquityTTM),
       data.dividen,
       data.market_share,
-      data.net_income,
+      convertToNumber(data.net_income).toNumber(),
       Number(stockData.financialLeverageQuarter)
     );
 

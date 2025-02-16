@@ -5,16 +5,25 @@ export function percentToDecimal(input: number): number {
 }
 
 export function convertToNumber(value: string): BigNumber {
-  const [numberPart, unit] = value.split(" ");
-  const number = new BigNumber(numberPart.replace(/,/g, ""));
+  try {
+    console.log("value ", value, typeof value);
+    if (typeof value !== "string") {
+      return new BigNumber(0);
+    }
+    const [numberPart, unit] = value?.split(" ");
+    const number = new BigNumber(numberPart?.replace(/,/g, ""));
 
-  switch (unit) {
-    case "B":
-      return number.multipliedBy(1e9);
-    case "M":
-      return number.multipliedBy(1e6);
-    default:
-      return number;
+    switch (unit) {
+      case "B":
+        return number.multipliedBy(1e9);
+      case "M":
+        return number.multipliedBy(1e6);
+      default:
+        return number;
+    }
+  } catch (error) {
+    console.error("Error converting value to number:", error);
+    return new BigNumber(0);
   }
 }
 
