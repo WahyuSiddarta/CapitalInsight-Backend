@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.YahooStockModel = void 0;
 const yahoo_finance2_1 = __importDefault(require("yahoo-finance2"));
 const format_1 = require("../helpers/format");
+const logger_1 = __importDefault(require("../logger"));
 class YahooStockModel {
     static getStockInformationByTicker(ticker) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -71,7 +72,7 @@ class YahooStockModel {
                 return quote.summaryDetail.beta || null;
             }
             catch (err) {
-                console.error(`Error fetching beta from Yahoo Finance for ticker ${ticker}:`, err);
+                logger_1.default.error(`Error fetching beta from Yahoo Finance for ticker ${ticker}:`, err);
                 return null;
             }
         });
