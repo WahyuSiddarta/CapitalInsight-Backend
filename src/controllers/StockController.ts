@@ -6,12 +6,15 @@ import { FinancialModel } from "../models/financialModel";
 import logger from "../logger";
 import * as Yup from "yup";
 import { executeWithCatch } from "../helpers/executeWithCatch";
+import { CustomValuation } from "../helpers/valuation/CustomValuation";
+import { calculateEPS } from "../helpers/format";
 
 export const GetAllStockTicker = async (req: Request, res: Response) => {
   try {
     const data = await StockModel.getStockTickers();
     res.json(data);
   } catch (err) {
+    logger.error(`Error fetching stock tickers: ${err}`);
     res.status(500).json({ error: (err as Error).message });
   }
 };
@@ -184,8 +187,7 @@ export const CalculateERMValuation = async (
     );
 
     return res.json({
-      cost_of_equity,
-      fair_value,
+      data: fair_value,
       ticker: ticker,
     });
   } catch (err) {
@@ -198,7 +200,7 @@ export const CalculateERMValuation = async (
 
 const customModelSchema = Yup.object().shape({
   ticker: Yup.string().required("Ticker is required and must be a string"),
-  your_conviction: Yup.number()
+  user_conviction: Yup.number()
     .min(0, "Your conviction must be between 0 and 100")
     .max(99, "Your conviction must be between 0 and 99")
     .required(
@@ -222,7 +224,7 @@ const customModelSchema = Yup.object().shape({
     ),
   discounted_asset: Yup.number()
     .min(0, "Discounted asset must be between 0 and 100")
-    .max(100, "Discounted asset must be between 0 and 100")
+    .max(50, "Discounted asset must be between 0 and 100")
     .required("Discounted asset is required and must be a number"),
   leverage: Yup.number()
     .required("Leverage is required and must be a number")
@@ -243,48 +245,82 @@ export const CalculateCustomModel = async (
     return res.status(400).json({ error: "Validation failed" });
   }
 
-  const { ticker } = req.body;
-  const fullTicker = `${ticker}.JK`;
+  const {
+    ticker,
+    discounted_asset,
+    user_conviction,
+    net_income,
+    market_share,
+    leverage,
+    stability,
+    growth_rate,
+    dividen,
+  } = req.body;
 
   try {
-    let stockData = await StockModel.getStockInformationByTicker(fullTicker);
+    let stockData = await executeWithCatch(() =>
+      StockModel.getStockInformationByTicker(ticker)
+    );
+
+    // stockData = await YahooStockModel.getStockInformationByTicker(fullTicker);
+    // if (stockData) {
+    //   try {
+    //     await StockModel.upsertStockFinancialInformation(stockData);
+    //   } catch (error) {
+    //     logger.error(
+    //       `Error upserting stock financial information for ticker ${fullTicker}: ${error}`
+    //     );
+    //   }
+    // }
 
     if (!stockData) {
-      // stockData = await YahooStockModel.getStockInformationByTicker(fullTicker);
-      // if (stockData) {
-      //   try {
-      //     await StockModel.upsertStockFinancialInformation(stockData);
-      //   } catch (error) {
-      //     logger.error(
-      //       `Error upserting stock financial information for ticker ${fullTicker}: ${error}`
-      //     );
-      //   }
-      // }
-    }
-
-    if (!stockData) {
+      logger.error(`Stock data not found for ticker: ${ticker}`);
       return res
         .status(422)
-        .json({ error: `Stock data not found for ticker: ${fullTicker}` });
+        .json({ error: `Stock data not found for ticker: ${ticker}` });
     }
 
-    const financialVars = await FinancialModel.getFinanceVarsByKeys([
-      "risk_free_rate",
-      "stock_expected_return",
-    ]);
+    const ermValuation = new CustomValuation();
 
-    const riskFree = financialVars["risk_free_rate"];
-    const idxFree = financialVars["stock_expected_return"];
-
-    if (!riskFree || !idxFree) {
-      return res.status(500).json({ error: "Financial data not found" });
+    if (
+      !stockData.totalEquity ||
+      !stockData.currentBookValuePerShare ||
+      !stockData.returnOnEquityTTM
+    ) {
+      return res.status(422).json({
+        error: `Total Equity, Current Book Value Per Share, or Return on Equity not found for ticker: ${ticker}`,
+      });
     }
+    if (
+      isNaN(Number(stockData.currentBookValuePerShare)) ||
+      isNaN(Number(stockData.returnOnEquityTTM))
+    ) {
+      return res.status(422).json({
+        error: `Current Book Value Per Share or Return on Equity is not a number for ticker: ${ticker}`,
+      });
+    }
+    let EPS = calculateEPS(stockData.totalEquity, net_income);
+
+    const fair_value = ermValuation.calculateFairValue(
+      Number(stockData.currentBookValuePerShare),
+      EPS,
+      discounted_asset,
+      user_conviction,
+      stability,
+      growth_rate,
+      Number(stockData.returnOnEquityTTM),
+      dividen,
+      market_share,
+      net_income,
+      leverage
+    );
 
     return res.json({
-      data: 0,
+      data: fair_value,
       ticker: ticker,
     });
   } catch (err) {
+    logger.error("Error calculating custom model:", err);
     res.status(500).json({ error: (err as Error).message });
   }
 };

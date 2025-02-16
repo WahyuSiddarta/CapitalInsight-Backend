@@ -5,6 +5,8 @@ interface StockTicker {
 }
 
 export interface StockFinancialData {
+  ticker: string;
+  updated_at: Date;
   currentPERatioTTM: string | null;
   ihsgPERatioTTMMedian: string | null;
   earningsYieldTTM: string | null;

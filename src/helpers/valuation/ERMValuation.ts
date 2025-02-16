@@ -40,7 +40,7 @@ export class ERMValuation {
       let newRoe = ROE;
       if (i > DECLINE_YEAR) {
         // decay until final roe
-        newRoe = Math.max(final_roe, ROE - (i - DECLINE_YEAR) * decayRate);
+        newRoe = Math.max(final_roe, ROE - i * decayRate);
       }
       NewBVPS = NewBVPS * (1 + percentToDecimal(newRoe));
       const NewExcessReturn =

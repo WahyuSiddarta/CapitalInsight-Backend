@@ -1,5 +1,6 @@
 import yahooFinance from "yahoo-finance2";
 import { percentToDecimal } from "../helpers/format";
+import logger from "../logger";
 
 export interface StockFinancialData {
   ticker: string;
@@ -81,7 +82,7 @@ export class YahooStockModel {
 
       return quote.summaryDetail.beta || null;
     } catch (err) {
-      console.error(
+      logger.error(
         `Error fetching beta from Yahoo Finance for ticker ${ticker}:`,
         err
       );
