@@ -7,7 +7,7 @@ import logger from "../logger";
 import * as Yup from "yup";
 import { executeWithCatch } from "../helpers/executeWithCatch";
 import { CustomValuation } from "../helpers/valuation/CustomValuation";
-import { calculateEPS } from "../helpers/format";
+import { calculateEPS, convertToNumber } from "../helpers/format";
 
 export const GetAllStockTicker = async (req: Request, res: Response) => {
   try {
@@ -206,7 +206,7 @@ const customModelSchema = Yup.object().shape({
     .required(
       "Your conviction is required and must be a number between 0 and 100"
     ),
-  net_income: Yup.number().required(
+  net_income: Yup.string().required(
     "Net income is required and must be a number"
   ),
   market_share: Yup.number()
@@ -215,9 +215,10 @@ const customModelSchema = Yup.object().shape({
     .when(
       "net_income",
       (net_income: any, schema: Yup.NumberSchema<number | undefined>) => {
-        return net_income > 5000000
+        const realNetIncome = convertToNumber(net_income);
+        return realNetIncome.isGreaterThan(5000000000000)
           ? schema.required(
-              "Market share is required when net income is greater than 5,000,000"
+              "Market share is required when net income is greater than 5,000,000,000,000"
             )
           : schema.notRequired();
       }
@@ -226,18 +227,44 @@ const customModelSchema = Yup.object().shape({
     .min(0, "Discounted asset must be between 0 and 100")
     .max(50, "Discounted asset must be between 0 and 100")
     .required("Discounted asset is required and must be a number"),
-  leverage: Yup.number()
-    .required("Leverage is required and must be a number")
-    .min(0, "Leverage must be between 0 and 100")
-    .max(100, "Leverage must be between 0 and 100"),
+
+  growth_rate: Yup.number()
+    .min(0, "Growth rate must be between 0 and 100")
+    .max(100, "Growth rate must be between 0 and 100")
+    .required("Growth rate is required and must be a number"),
+  dividen: Yup.number()
+    .min(0, "Dividen must be between 0 and 100")
+    .max(100, "Dividen must be between 0 and 100")
+    .required("Dividen is required and must be a number"),
 });
 
 export const CalculateCustomModel = async (
   req: Request,
   res: Response
 ): Promise<any> => {
+  const {
+    ticker,
+    discounted_asset,
+    user_conviction,
+    net_income,
+    market_share,
+    stability,
+    growth_rate,
+    dividen,
+  } = req.body;
+  const data = {
+    ticker,
+    discounted_asset: Number(discounted_asset),
+    user_conviction: Number(user_conviction),
+    net_income,
+    market_share: Number(market_share),
+    stability: Number(stability),
+    growth_rate: Number(growth_rate),
+    dividen: Number(dividen),
+  };
+
   try {
-    await customModelSchema.validate(req.body, { abortEarly: false });
+    await customModelSchema.validate(data, { abortEarly: false });
   } catch (validationError) {
     if (validationError instanceof Yup.ValidationError) {
       return res.status(400).json({ errors: validationError.errors });
@@ -245,33 +272,10 @@ export const CalculateCustomModel = async (
     return res.status(400).json({ error: "Validation failed" });
   }
 
-  const {
-    ticker,
-    discounted_asset,
-    user_conviction,
-    net_income,
-    market_share,
-    leverage,
-    stability,
-    growth_rate,
-    dividen,
-  } = req.body;
-
   try {
     let stockData = await executeWithCatch(() =>
       StockModel.getStockInformationByTicker(ticker)
     );
-
-    // stockData = await YahooStockModel.getStockInformationByTicker(fullTicker);
-    // if (stockData) {
-    //   try {
-    //     await StockModel.upsertStockFinancialInformation(stockData);
-    //   } catch (error) {
-    //     logger.error(
-    //       `Error upserting stock financial information for ticker ${fullTicker}: ${error}`
-    //     );
-    //   }
-    // }
 
     if (!stockData) {
       logger.error(`Stock data not found for ticker: ${ticker}`);
@@ -280,12 +284,11 @@ export const CalculateCustomModel = async (
         .json({ error: `Stock data not found for ticker: ${ticker}` });
     }
 
-    const ermValuation = new CustomValuation();
-
     if (
       !stockData.totalEquity ||
       !stockData.currentBookValuePerShare ||
-      !stockData.returnOnEquityTTM
+      !stockData.returnOnEquityTTM ||
+      !stockData.financialLeverageQuarter
     ) {
       return res.status(422).json({
         error: `Total Equity, Current Book Value Per Share, or Return on Equity not found for ticker: ${ticker}`,
@@ -293,7 +296,8 @@ export const CalculateCustomModel = async (
     }
     if (
       isNaN(Number(stockData.currentBookValuePerShare)) ||
-      isNaN(Number(stockData.returnOnEquityTTM))
+      isNaN(Number(stockData.returnOnEquityTTM)) ||
+      isNaN(Number(stockData.financialLeverageQuarter))
     ) {
       return res.status(422).json({
         error: `Current Book Value Per Share or Return on Equity is not a number for ticker: ${ticker}`,
@@ -301,18 +305,19 @@ export const CalculateCustomModel = async (
     }
     let EPS = calculateEPS(stockData.totalEquity, net_income);
 
+    const ermValuation = new CustomValuation();
     const fair_value = ermValuation.calculateFairValue(
       Number(stockData.currentBookValuePerShare),
       EPS,
-      discounted_asset,
-      user_conviction,
-      stability,
-      growth_rate,
+      data.discounted_asset,
+      data.user_conviction,
+      data.stability,
+      data.growth_rate,
       Number(stockData.returnOnEquityTTM),
-      dividen,
-      market_share,
-      net_income,
-      leverage
+      data.dividen,
+      data.market_share,
+      data.net_income,
+      Number(stockData.financialLeverageQuarter)
     );
 
     return res.json({
