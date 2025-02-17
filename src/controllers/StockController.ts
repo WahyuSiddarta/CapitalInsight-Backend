@@ -76,15 +76,7 @@ export const CalculateERMValuation = async (
     });
   }
 
-  // temporary fetch beta from yahoo, beta should be collected by cron job
-  let yahooBeta = await YahooStockModel.getBetaByTicker(ticker + ".JK");
-  if (!yahooBeta || isNaN(Number(yahooBeta))) {
-    return res
-      .status(422)
-      .json({ error: `Beta not found for ticker: ${ticker}` });
-  }
-
-  let beta = Number(yahooBeta);
+  let beta = Number(0);
 
   // optional params validation
   const decline_year_num = Number(decline_year_params);
@@ -156,6 +148,16 @@ export const CalculateERMValuation = async (
     final_roe = final_roe_num;
   }
 
+  if (!beta) {
+    // temporary fetch beta from yahoo, beta should be collected by cron job
+    let yahooBeta = await YahooStockModel.getBetaByTicker(ticker + ".JK");
+    if (!yahooBeta || isNaN(Number(yahooBeta))) {
+      return res
+        .status(422)
+        .json({ error: `Beta not found for ticker: ${ticker}` });
+    }
+    beta = Number(yahooBeta);
+  }
   try {
     const financialVars = await FinancialModel.getFinanceVarsByKeys([
       "risk_free_rate",

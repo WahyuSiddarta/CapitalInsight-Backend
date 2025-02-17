@@ -109,14 +109,7 @@ const CalculateERMValuation = (req, res) => __awaiter(void 0, void 0, void 0, fu
             error: `Error on DB ${ticker} : ${stockData.returnOnEquityTTM}`,
         });
     }
-    // temporary fetch beta from yahoo, beta should be collected by cron job
-    let yahooBeta = yield yahooStockModel_1.YahooStockModel.getBetaByTicker(ticker + ".JK");
-    if (!yahooBeta || isNaN(Number(yahooBeta))) {
-        return res
-            .status(422)
-            .json({ error: `Beta not found for ticker: ${ticker}` });
-    }
-    let beta = Number(yahooBeta);
+    let beta = Number(0);
     // optional params validation
     const decline_year_num = Number(decline_year_params);
     if (!!decline_year_params && isNaN(decline_year_num)) {
@@ -175,6 +168,16 @@ const CalculateERMValuation = (req, res) => __awaiter(void 0, void 0, void 0, fu
     let final_roe = roe; // default value, change this to use data from db
     if (!!final_roe_params && final_roe_num > 0) {
         final_roe = final_roe_num;
+    }
+    if (!beta) {
+        // temporary fetch beta from yahoo, beta should be collected by cron job
+        let yahooBeta = yield yahooStockModel_1.YahooStockModel.getBetaByTicker(ticker + ".JK");
+        if (!yahooBeta || isNaN(Number(yahooBeta))) {
+            return res
+                .status(422)
+                .json({ error: `Beta not found for ticker: ${ticker}` });
+        }
+        beta = Number(yahooBeta);
     }
     try {
         const financialVars = yield financialModel_1.FinancialModel.getFinanceVarsByKeys([
